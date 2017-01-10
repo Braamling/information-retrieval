@@ -10,41 +10,46 @@ def retrieve_pair():
         yield (x[:5], x[5:])
 
 
+# This function calculates the recall at rank k, k needs to be smaller or equal to the ranking size.
 def calc_recall(ranking, n_rel_docs, k=5):
+    assert k <= len(ranking), "k needs to be smaller or equal to the amount of documents"
     counter = 0
     for rel in ranking[:k]:
         if rel >= 1:
             counter+=1
     return float(counter)/n_rel_docs
 
-# This function calculates the precision at rank k, k needs to be smaller than the ranking size.
+# This function calculates the precision at rank k, k needs to be smaller or equal to the ranking size.
 def calc_precision(ranking, k=5):
-    assert k<len(ranking), "k needs to be smaller than the amount of documents"
+    assert k<=len(ranking), "k needs to be smaller or equal to the amount of documents"
     counter = 0
-    for rank, rel in enumerate(ranking[:k], i):
+    for rank, rel in enumerate(ranking[:k], 1):
         if rel >=1:
             counter += 1
     return counter/k
 
-
+# This function calculates the average precision over all documents.
 def calc_avg_precision(ranking, n_rel_docs):
     avg_prec = 0
     counter = 0
     for rank, rel in enumerate(ranking,1):
         if rel >= 1:
-            counter+=1
+            counter += 1
             avg_prec += float(counter)/rank
     return avg_prec/n_rel_docs
 
+# This function calculates the dcg at rank k, k needs to be smaller or equal to the ranking size.
 def calc_dcg(ranking, k=5):
-	dcg = 0
-	# Iterate over each position in the ranking until at position k
-	for rank, rel in enumerate(ranking[:k], 1):
-		# Calculate the dg of the current rank an dadd it to the sum of the dcg.
-		dcg += (2**rel - 1) / math.log(1 + rank, 2)
+    assert k <= len(ranking), "k needs to be smaller or equal to the amount of documents"
+    dcg = 0
+    # Iterate over each position in the ranking until at position k
+    for rank, rel in enumerate(ranking[:k], 1):
+        # Calculate the dg of the current rank an dadd it to the sum of the dcg.
+        dcg += (2**rel - 1) / math.log(1 + rank, 2)
 
 	return dcg
 
+# This function calculates the RBP.
 def calc_RBP(ranking, theta=0.8):
     RBP = 0
     for rank, rel in enumerate(ranking,1):
