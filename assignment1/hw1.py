@@ -15,10 +15,19 @@ def calc_dcg(ranking, k=5):
 
 	return dcg
 
+def avg_precision(p, n_rel_docs):
+    avg_prec = 0
+    counter = 0
+    for i, rel in enumerate(p,1):
+        if rel >= 1:
+            counter+=1
+            avg_prec += float(counter)/i
+    return avg_prec/n_rel_docs
 
 def main():
     pair = retrieve_pair()
 
+    print avg_precision([1,0,2,1,0,1], 10)
     for i in range(10):
         print pair.next()
 
