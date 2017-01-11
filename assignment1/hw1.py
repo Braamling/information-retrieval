@@ -8,10 +8,16 @@ def retrieve_pairs():
 def retrieve_pair():
     for x in itertools.product((0, 1, 2), repeat=10):
         yield (x[:5], x[5:])
-
+"""
+If p contains only HR documents and e contains only R documents, we know there are at the very least 10 documents.
+If p and e only contain R documents, then we cannot say if there are the same, we assume here that they are different.
+The total amount of relevant documents cannot be calculated because not all the documents are given within p and e,
+otherwise p and e would contain the same documents. Therefore we assume that the total amount of relevant documents for
+each query is 12 as this is more than 10.
+"""
 
 # This function calculates the recall at rank k, k needs to be smaller or equal to the ranking size.
-def calc_recall(ranking, n_rel_docs, k=5):
+def calc_recall(ranking, n_rel_docs=12, k=5):
     assert k <= len(ranking), "k needs to be smaller or equal to the amount of documents"
     counter = 0
     for rel in ranking[:k]:
@@ -29,7 +35,7 @@ def calc_precision(ranking, k=5):
     return counter/k
 
 # This function calculates the average precision over all documents.
-def calc_avg_precision(ranking, n_rel_docs):
+def calc_avg_precision(ranking, n_rel_docs=12):
     avg_prec = 0
     counter = 0
     for rank, rel in enumerate(ranking,1):
@@ -80,9 +86,9 @@ def calculate_scores(ranking):
 	results['ndcg'] = normalized_dcg(ranking, len(ranking))
 	results['rbp'] = calc_RBP(ranking)
 	results['ndcg'] = normalized_dcg(ranking, len(ranking))
-	results['recall'] = calc_recall(ranking, 5, len(ranking))
+	results['recall'] = calc_recall(ranking, 5)
 	results['precision'] = calc_precision(ranking, len(ranking))
-	results['avg_precision'] = calc_avg_precision(ranking, 5)
+	results['avg_precision'] = calc_avg_precision(ranking)
 
 	return results
 
