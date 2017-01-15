@@ -12,7 +12,7 @@ class YandexFilereader():
         log = []
         counter_D = 0
         counter_C = 0
-        with open(paht) as f:
+        with open(path) as f:
             content = f.readlines()
             for line in content:
                 line = line.rstrip('\n')
