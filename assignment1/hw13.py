@@ -132,14 +132,14 @@ class YandexFilereader():
 
 class UserClickGenerator():
 
-    def __init__(self, yandex_data):
+    def __init__(self, yandex_data = None):
         self.yandex_data = yandex_data
 
     """
     Calculate SDBM probability given the rank and relevance grades.
     """
     def calculate_SDBM(self, rank, ranking):
-        attraction = self.get_attraction(rank)
+        attraction = self.get_attraction(ranking[rank-1][0])
         examination = self.get_examination(rank, ranking[:rank])
         return attraction * examination
 
@@ -162,7 +162,7 @@ class UserClickGenerator():
         if rank == 1:
             return 1  # self.get_attraction(ranking_list[0])
         else:
-            attraction_r = self.get_attraction(ranking_list[-2])
+            attraction_r = self.get_attraction(ranking_list[-2][0])
             temp = attraction_r * (1 - attraction_r) + (1 - attraction_r)
             return self.get_examination(rank - 1, ranking_list[:-1]) * temp
 
@@ -201,11 +201,6 @@ Sample function given probability of clicking a document
 def main():
     yandexDocs = YandexFilereader("YandexRelPredChallenge.txt")
     print vars(yandexDocs.get_document('5039'))
-
-    # Wat jij moet weten
-    ucg = UserClickGenerator(yandexDocs)
-    print ucg.generate_RCP_clicks([1, 2, 0, 1, 0], 'RCM')
-    print ucg.generate_RCP_clicks([1, 2, 0, 1, 0], 'SDBM')
 
 if __name__ == '__main__':
     main()

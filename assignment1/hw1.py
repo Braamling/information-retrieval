@@ -1,7 +1,7 @@
 import itertools
 import math
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def retrieve_pairs():
     return [(x[:5], x[5:]) for x in itertools.product((0, 1, 2), repeat=10)]
@@ -106,14 +106,27 @@ def calculate_measure(pair):
 
     for measurement in measures:
         # If any of the measurements is negative, the results are discarded.
-        result = results_p[measurement] - results_e[measurement]
+        result = results_e[measurement] - results_p[measurement]
         if result < 0:
             return None
 
         # Add the measurement to the results
         results[measurement] = result
 
-    return results
+    return results, pair
+
+"""
+Retrieve all pairs where the E measurement is bigger than P in all types of measurements.
+"""
+def retrieve_final_pairs():
+    pairs = retrieve_pairs()
+    final_pairs = []
+
+    for pair in pairs:
+        measure = calculate_measure(pair)
+        if measure is not None:
+            final_pairs.append(pair)
+    return final_pairs
 
 def main():
     pairs = retrieve_pairs()
@@ -127,13 +140,21 @@ def main():
 
         # Ignore the pair if result_e < result_p
         if measure is not None:
-            dcg.append(measure['dcg'])
-            ndcg.append(measure['ndcg'])
-            #print measure
-    #plt.plot(dcg)
-    plt.plot(ndcg)
-    plt.errorbar(x, y, e, linestyle='None', marker='^')
-    plt.show()
+            # dcg.append(measure['dcg'])
+            # ndcg.append(measure['ndcg'])
+            print measure
+
+    # avg = []
+    # std = []
+    # avg.append(np.mean(np.asarray(dcg)))
+    # std.append(np.std(np.asarray(dcg)))
+    # avg.append(np.mean(np.asarray(ndcg)))
+    # std.append(np.std(np.asarray(ndcg)))
+    # x = np.arange(0.1, 4, 0.5)
+    #
+    # plt.figure()
+    # plt.errorbar(range(len(avg)), avg, std, marker='^', fmt='o')
+    # plt.show()
 
 if __name__ == '__main__':
     main()

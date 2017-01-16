@@ -1,5 +1,7 @@
 import random
 from collections import OrderedDict
+import hw1
+import hw13
 
 class ProbInterleaving():
 
@@ -169,9 +171,33 @@ def assign_team_draft_credits(ranking_a, ranking_b, interleaved, clicks):
 
     return credits_a, credits_b
 
+def interleave_all():
+    #pairs = retrieve_final_pairs()
+    pairs = hw1.retrieve_final_pairs() # Todo switch this with the upper
+
+    ucg = hw13.UserClickGenerator()
+
+    scores = []
+    for pair in pairs:
+        pair1, pair2 = assign_document_ids(pair[0], pair[1])
+        prob_interleaving = ProbInterleaving((pair1, pair2), 3)
+        prob_interleaving.interleave(10)
+        interleaved = prob_interleaving.interleaved
+        clicks = ucg.generate_RCP_clicks(interleaved, 'SDBM')
+        clicks2 = [i for i, e in enumerate(clicks) if e != 0]
+        score = assign_team_draft_credits(pair1, pair2, interleaved, clicks2)
+        # for if you want to print it, but it has been checked.
+        # print 'pairs: {} and {}'.format(pair1, pair2)
+        # print 'clicks: {}'.format(clicks)
+        # print 'interleaved:  {}'.format(interleaved)
+        # print 'score: {}'.format(score)
+        scores.append(score)
+
+    print scores
+    return scores
 
 def main():
-
+    interleave_all()
     # We consider two lists with document id's in desc order.
     ranking_a = [1, 2, 0, 0, 0, 0]
     ranking_b = [1, 2, 1, 2, 0]
