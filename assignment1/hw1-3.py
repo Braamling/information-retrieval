@@ -1,4 +1,5 @@
 import re
+import random
 
 class Document():
     def __init__(self, document_id):
@@ -131,6 +132,36 @@ class YandexFilereader():
     """
     def calculate_RCP(self, click_amount, docs_shown):
         return click_amount/float(docs_shown)
+
+    """
+    Return the probability of a click given the rank
+    """
+    def calculate_SDBM(self, attraction, examenation):
+        return attraction * examenation
+
+    """
+    Returns the probability given the type of click model
+    """
+    def get_probability(self, rank, type):
+        if type == "RCM":
+            return self.calculate_RCP(self.counter_C, self.counter_D)
+        elif type == "SDBM":
+            return self.calculate_SDBM(0, 0) # TODO replace values
+        else:
+            return None
+
+    """
+    Generate clicks given click probability
+    """
+    def generate_RCP_clicks(self, ranking, type):
+        clicks = []
+        for i in range(len(ranking)):
+            toss = random.uniform(0, 1)
+            if toss < self.get_probability(i+1, type):
+                clicks.append(1)
+            else:
+                clicks.append(0)
+        return clicks
 
 
 """
