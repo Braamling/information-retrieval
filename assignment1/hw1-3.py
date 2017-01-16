@@ -136,17 +136,40 @@ class YandexFilereader():
     """
     Return the probability of a click given the rank
     """
-    def calculate_SDBM(self, attraction, examenation):
-        return attraction * examenation
+    def calculate_SDBM(self, rank, ranking):
+        attraction = self.get_attraction(rank)
+        examination = self.get_examination(rank, ranking[:rank])
+        return attraction * examination
+
+    """
+    Given a relevance grade {0, 1, 2} Divide this by 2 to get a fixed probability for the attractiveness.
+    """
+    def get_attraction(self, relevance):
+        return relevance/2.2
+
+    """
+    We calculate the examination according to the formula given by the book
+    \epsilon_r+1 = \epsilon_r (\alpha_{u_rq}(1 - \sigma_{u_rq}) + (1 - \alpha_{u_rq}))
+    The assumption has been made that  the attraction \alpha_{u_q} and \sigma_{u_q} are the same because
+    this cannot be determined without document Id's and query Id's in our generated set. We return an
+    examination chance of 1 for the first rank as this is assumed to always be checked.
+    """
+    def get_examination(self, rank, ranking_list):
+        if rank == 1:
+            return 1 # self.get_attraction(ranking_list[0])
+        else:
+            attraction_r = self.get_attraction(ranking_list[-2])
+            temp = attraction_r * (1 - attraction_r) + (1 - attraction_r)
+            return self.get_examination(rank - 1, ranking_list[:-1]) * temp
 
     """
     Returns the probability given the type of click model
     """
-    def get_probability(self, rank, type):
+    def get_probability(self, rank, type, ranking):
         if type == "RCM":
             return self.calculate_RCP(self.counter_C, self.counter_D)
         elif type == "SDBM":
-            return self.calculate_SDBM(0, 0) # TODO replace values
+            return self.calculate_SDBM(rank, ranking)
         else:
             return None
 
@@ -157,11 +180,12 @@ class YandexFilereader():
         clicks = []
         for i in range(len(ranking)):
             toss = random.uniform(0, 1)
-            if toss < self.get_probability(i+1, type):
+            if toss < self.get_probability(i+1, type, ranking):
                 clicks.append(1)
             else:
                 clicks.append(0)
         return clicks
+
 
 
 """
