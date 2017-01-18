@@ -9,7 +9,7 @@ class ProbInterleaving():
     def __init__(self, rankings, tau):
         self.rankings = self.assign_ranks(rankings)
         self.tau = tau
-        self.denoms = [] # waarom slaan we dit op als dit opnieuw wordt berekend telkens?
+        self.denoms = []
         self.interleaved = []
 
         self.calculate_denominators()
@@ -112,6 +112,12 @@ class ProbInterleaving():
     def remove_ranking(self, document):
         return(document[1])
 
+
+    """
+    Get the interleaving ranking 
+    """
+    def get_interleaved(self):
+        return self.interleaved
 
 """
 Assign document ids to keep track of which document is which (though we assume they

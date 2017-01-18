@@ -94,9 +94,8 @@ def calculate_scores(ranking):
 
     return results
 
-def calculate_measure(pair):
+def calculate_measure(pair, measures):
     # ITerate over all scoring types and calculate the measurements
-    measures = ['dcg', 'ndcg', 'rbp', 'ndcg', 'recall', 'precision', 'avg_precision']
 
     # Calculate both scores
     results_p = calculate_scores(pair[0])
@@ -111,7 +110,9 @@ def calculate_measure(pair):
             return None
 
         # Add the measurement to the results
-        results[measurement] = result
+        results[measurement] = {"result_p": results_p[measurement],
+                                "result_e": results_e[measurement],
+                                "result": result}
 
     return results, pair
 
@@ -128,33 +129,32 @@ def retrieve_final_pairs():
             final_pairs.append(pair)
     return final_pairs
 
-def main():
-    pairs = retrieve_pairs()
-
+def create_paired_measurements(pairs, measures):
     # offline measure plot
-    dcg =[]
-    ndcg = []
+    measurements =[]
+    for i in range(len(measures)):
+        measurements.append([])
+
     # Check the measurements for each pair
     for pair in pairs:
-        measure = calculate_measure(pair)
+        measure = calculate_measure(pair, measures)
 
         # Ignore the pair if result_e < result_p
         if measure is not None:
-            # dcg.append(measure['dcg'])
-            # ndcg.append(measure['ndcg'])
-            print measure
+            for i, measurement in enumerate(measures):
+                measurements[i].append(measure[measurement]['result'])
 
-    # avg = []
-    # std = []
-    # avg.append(np.mean(np.asarray(dcg)))
-    # std.append(np.std(np.asarray(dcg)))
-    # avg.append(np.mean(np.asarray(ndcg)))
-    # std.append(np.std(np.asarray(ndcg)))
-    # x = np.arange(0.1, 4, 0.5)
-    #
-    # plt.figure()
-    # plt.errorbar(range(len(avg)), avg, std, marker='^', fmt='o')
-    # plt.show()
+    return np.asarray(measurements)
 
+def main():
+    measures = ['dcg', 'ndcg', 'rbp', 'ndcg', 'recall', 'precision', 'avg_precision']
+
+    pairs = retrieve_pairs()
+    paired_measurements = create_paired_measurements(pairs, measures)
+
+    print paired_measurements.shape
+    print paired_measurements[0].mean()
+    print paired_measurements[1].mean()
+   
 if __name__ == '__main__':
     main()
