@@ -6,6 +6,7 @@ import lasagne
 import theano
 import theano.tensor as T
 import time
+import math
 from itertools import count
 import query
 theano.config.floatX = 'float32'
@@ -15,8 +16,8 @@ NUM_EPOCHS = 100
 
 BATCH_SIZE = 1000
 NUM_HIDDEN_UNITS = 100
-# LEARNING_RATE = 0.00005
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.00005
+# LEARNING_RATE = 0.005
 MOMENTUM = 0.95
 
 POINTWISE = 0
@@ -165,7 +166,7 @@ class LambdaRankHW:
 
         return np.sum(lambda_docs, axis=1)
 
-    def compute_lambdas_theano(self,query, labels):
+    def compute_lambdas_theano(self, query, labels):
         scores = self.score(query).flatten()
         result = self.lambda_function(labels, scores[:len(labels)])
         return result
@@ -207,6 +208,32 @@ class LambdaRankHW:
         except KeyboardInterrupt:
             pass
 
+    # train_queries are what load_queries returns - implemented in query.py
+    def ndcg(self, train_queries, n_ndcg):
+        ndcgs = []
+        for query in train_queries:
+            labels = query.get_labels()
+
+            # Score and assign internal doc number to each document
+            scores = enumerate(self.score(query).flatten())
+
+            # Sort the documents based on the output score
+            ranking = sorted(scores, key=lambda x: -x[1])
+
+            # Discard all but the best n_ndcg documents
+            ranking = ranking[:n_ndcg]
+
+            dcg = max_dcg = 0
+            for i, doc in enumerate(ranking, 1):
+                # Calculate each part of the dcg part
+                dcg += (2**labels[doc[0]] - 1) / math.log(i + 1, 2)
+                max_dcg += (2**1 - 1) / math.log(i + 1, 2)
+
+            ndcgs.append(dcg/max_dcg)
+
+        return ndcgs
+
+
     def train(self, train_queries):
         X_trains = train_queries.get_feature_vectors()
 
@@ -219,7 +246,6 @@ class LambdaRankHW:
             for index in xrange(len(queries)):
                 random_index = random_batch[index]
                 labels = queries[random_index].get_labels()
-
                 batch_train_loss = self.train_once(X_trains[random_index], queries[random_index], labels)
                 batch_train_losses.append(batch_train_loss)
 
