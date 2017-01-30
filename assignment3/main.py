@@ -14,7 +14,7 @@ def main():
 	# Load first fold of files.
 	queries = load_queries('./HP2003/Fold1/train.txt', config.FEATURE_COUNT)
 
-	lambdaRank.train_with_queries(queries, 5)
+	lambdaRank.train_with_queries(queries, 100)
 
 
 

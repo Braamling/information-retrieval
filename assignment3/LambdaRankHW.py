@@ -9,7 +9,7 @@ import time
 from itertools import count
 import query
  
-NUM_EPOCHS = 5
+NUM_EPOCHS = 100
 
 BATCH_SIZE = 1000
 NUM_HIDDEN_UNITS = 100
@@ -23,9 +23,7 @@ PAIRWISE = 1
 
 # TODO: Implement the lambda loss function
 def lambda_loss(output, lambdas):
-    all_params = lasagne.layers.get_all_params(output)
-    raise "Unimplemented"
-
+    return theano.dot(output, lambdas)
 
 class LambdaRankHW:
 
@@ -179,7 +177,10 @@ class LambdaRankHW:
             lambdas = self.compute_lambdas_theano(query,labels)
             lambdas.resize((BATCH_SIZE, ))
 
-        X_train.resize((BATCH_SIZE, self.feature_count), refcheck=False)
+        resize_value = BATCH_SIZE
+        if self.rank_type is POINTWISE:
+            resize_value=min(resize_value,len(labels))
+        X_train.resize((resize_value, self.feature_count),refcheck=False)
 
         # TODO: Comment out (and comment in) to replace labels by lambdas
         if self.rank_type is POINTWISE:
@@ -194,7 +195,7 @@ class LambdaRankHW:
         try:
             now = time.time()
             for epoch in self.train(train_queries):
-                if epoch['number'] % 1 == 0:
+                if epoch['number'] % 10 == 0:
                     print("Epoch {} of {} took {:.3f}s".format(
                     epoch['number'], num_epochs, time.time() - now))
                     print("training loss:\t\t{:.6f}\n".format(epoch['train_loss']))
