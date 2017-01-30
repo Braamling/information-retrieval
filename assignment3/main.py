@@ -1,4 +1,4 @@
-from LambdaRankHW import LambdaRankHW
+from LambdaRankHW import LambdaRankHW, POINTWISE, PAIRWISE
 from query import load_queries
 
 class Config():
@@ -9,7 +9,7 @@ def main():
 	config = Config()
 
 	# Create the lambda rank object for training
-	lambdaRank = LambdaRankHW(config.FEATURE_COUNT)
+	lambdaRank = LambdaRankHW(config.FEATURE_COUNT, POINTWISE)
 	
 	# Load first fold of files.
 	queries = load_queries('./HP2003/Fold1/train.txt', 1000)

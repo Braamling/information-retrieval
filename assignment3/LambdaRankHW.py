@@ -17,8 +17,17 @@ NUM_HIDDEN_UNITS = 100
 LEARNING_RATE = 0.005
 MOMENTUM = 0.95
 
+POINTWISE = 0
+PAIRWISE = 1
+
+
 # TODO: Implement the lambda loss function
 def lambda_loss(output, lambdas):
+
+    print output
+    print lambdas
+    print type(output)
+    print type(lambdas)
     raise "Unimplemented"
 
 
@@ -26,8 +35,9 @@ class LambdaRankHW:
 
     NUM_INSTANCES = count()
 
-    def __init__(self, feature_count):
+    def __init__(self, feature_count, type=PAIRWISE):
         self.feature_count = feature_count
+        self.rank_type = type
         self.output_layer = self.build_model(feature_count,1,BATCH_SIZE)
         self.iter_funcs = self.create_functions(self.output_layer)
 
@@ -79,10 +89,12 @@ class LambdaRankHW:
         output_row_det = lasagne.layers.get_output(output_layer, X_batch, deterministic=True, dtype="float32")
 
         # TODO: Change loss function
-        # Point-wise loss function (squared error) - comment it out
-        loss_train = lasagne.objectives.squared_error(output, y_batch)
-        # Pairwise loss function - comment it in
-        # loss_train = lambda_loss(output,y_batch)
+        if self.rank_type is POINTWISE:
+            # Point-wise loss function (squared error) - comment it out
+            loss_train = lasagne.objectives.squared_error(output, y_batch)
+        elif self.rank_type is PAIRWISE:
+            # Pairwise loss function - comment it in
+            loss_train = lambda_loss(output,y_batch)
 
         loss_train = loss_train.mean()
 
@@ -168,14 +180,18 @@ class LambdaRankHW:
         # TODO: Comment out to obtain the lambdas
         # NOTETOSELF: Comment this in combination with 
         # the batch_train_loss to obtain point-wise
-        lambdas = self.compute_lambdas_theano(query,labels)
-        lambdas.resize((BATCH_SIZE, ))
+        if self.rank_type is PAIRWISE:
+            lambdas = self.compute_lambdas_theano(query,labels)
+            lambdas.resize((BATCH_SIZE, ))
 
         X_train.resize((BATCH_SIZE, self.feature_count), refcheck=False)
 
         # TODO: Comment out (and comment in) to replace labels by lambdas
-        batch_train_loss = self.iter_funcs['train'](X_train, lambdas)
-        # batch_train_loss = self.iter_funcs['train'](X_train, labels)
+        if self.rank_type is POINTWISE:
+            batch_train_loss = self.iter_funcs['train'](X_train, labels)
+        elif self.rank_type is PAIRWISE:
+            batch_train_loss = self.iter_funcs['train'](X_train, lambdas)
+
         return batch_train_loss
 
     # train_queries are what load_queries returns - implemented in query.py
