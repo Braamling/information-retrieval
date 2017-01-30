@@ -9,7 +9,7 @@ import time
 import math
 from itertools import count
 import query
-# theano.config.floatX = 'float32'
+theano.config.floatX = 'float32'
 
 
 BATCH_SIZE = 1000
@@ -59,11 +59,18 @@ class LambdaRankHW:
         )
 
 
-        l_out = lasagne.layers.DenseLayer(
-            l_hidden,
-            num_units=output_dim,
-            nonlinearity=lasagne.nonlinearities.linear,
-        )
+        if self.rank_type is POINTWISE:
+            l_out = lasagne.layers.DenseLayer(
+                l_hidden,
+                num_units=output_dim,
+                nonlinearity=lasagne.nonlinearities.linear,
+            )
+        elif self.rank_type is PAIRWISE:
+            l_out = lasagne.layers.DenseLayer(
+                l_hidden,
+                num_units=output_dim,
+                nonlinearity=lasagne.nonlinearities.linear,
+            )
 
         return l_out
 
@@ -157,7 +164,8 @@ class LambdaRankHW:
 
         # Calculate Lambda u,v
         denominator = 1 + np.exp(nn_scores)
-        lambda_uv = .5 * ((1 - label_scores).astype(int)) - (1 / denominator)
+        positive_label_scores = np.float32((0 < label_scores))
+        lambda_uv = .5 * ((1 - positive_label_scores) - (1 / denominator))
 
         # Subtract all positive label scored lambdas from the negative label scores lambdas
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv)
