@@ -157,7 +157,7 @@ class LambdaRankHW:
 
         # Calculate Lambda u,v
         denominator = 1 + np.exp(nn_scores)
-        lambda_uv = .5 * ((1 - label_scores).astype(int)) - (1 / denominator))
+        lambda_uv = .5 * ((1 - label_scores).astype(int)) - (1 / denominator)
 
         # Subtract all positive label scored lambdas from the negative label scores lambdas
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv)
