@@ -2,7 +2,7 @@ from LambdaRankHW import LambdaRankHW, POINTWISE, PAIRWISE
 from query import load_queries
 
 class Config():
-	FEATURE_COUNT = 1000
+	FEATURE_COUNT = 64
 
 
 def main():
@@ -12,7 +12,7 @@ def main():
 	lambdaRank = LambdaRankHW(config.FEATURE_COUNT, POINTWISE)
 	
 	# Load first fold of files.
-	queries = load_queries('./HP2003/Fold1/train.txt', 1000)
+	queries = load_queries('./HP2003/Fold1/train.txt', config.FEATURE_COUNT)
 
 	lambdaRank.train_with_queries(queries, 5)
 

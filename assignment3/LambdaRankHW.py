@@ -23,11 +23,7 @@ PAIRWISE = 1
 
 # TODO: Implement the lambda loss function
 def lambda_loss(output, lambdas):
-
-    print output
-    print lambdas
-    print type(output)
-    print type(lambdas)
+    all_params = lasagne.layers.get_all_params(output)
     raise "Unimplemented"
 
 
@@ -92,11 +88,11 @@ class LambdaRankHW:
         if self.rank_type is POINTWISE:
             # Point-wise loss function (squared error) - comment it out
             loss_train = lasagne.objectives.squared_error(output, y_batch)
+            loss_train = loss_train.mean()
         elif self.rank_type is PAIRWISE:
             # Pairwise loss function - comment it in
-            loss_train = lambda_loss(output,y_batch)
+            loss_train = lambda_loss(output, y_batch)
 
-        loss_train = loss_train.mean()
 
         # TODO: (Optionally) You can add regularization if you want - for those interested
         # L1_loss = lasagne.regularization.regularize_network_params(output_layer,lasagne.regularization.l1)
@@ -136,11 +132,10 @@ class LambdaRankHW:
     """ 
     Subtract all combinations of pairs into one matrix with indices u, v
     w_1 and w_2 are vectors of size N.
-    """
+        """
     def subtract_all_pairs(self, w_1, w_2):
         # Create a matrix with each vector repeated 
         W_1 = np.repeat(w_1, len(w_1)).reshape((len(w_1), len(w_1)))
-
         # Subtract the matrix by its vector
         return np.subtract(W_1, w_1)
 
