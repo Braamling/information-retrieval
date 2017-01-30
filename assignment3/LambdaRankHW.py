@@ -165,12 +165,16 @@ class LambdaRankHW:
         # Calculate Lambda u,v
         denominator = 1 + np.exp(nn_scores)
         positive_label_scores = np.float32((0 < label_scores))
-        lambda_uv = .5 * ((1 - positive_label_scores) - (1 / denominator))
+        lambda_uv = (.5 * (1 - positive_label_scores)) - (1 / denominator)
 
+        # print lambdas
         # Subtract all positive label scored lambdas from the negative label scores lambdas
-        lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv)
+        lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv.T)
 
-        return np.sum(lambda_docs, axis=1)
+        # np.sum(lambda_docs, axis=1) + 100.0
+
+        lambdas = np.sum(lambda_docs, axis=1)
+        return lambdas
 
     def compute_lambdas_theano(self, query, labels):
         scores = self.score(query).flatten()
@@ -204,7 +208,7 @@ class LambdaRankHW:
         try:
             now = time.time()
             for epoch in self.train(train_queries):
-                if epoch['number'] % 10 == 0:
+                if epoch['number'] % 1 == 0:
                     print("Epoch {} of {} took {:.3f}s".format(
                     epoch['number'], num_epochs, time.time() - now))
                     print("training loss:\t\t{:.6f}\n".format(epoch['train_loss']))

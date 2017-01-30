@@ -14,7 +14,7 @@ def main():
     logging.basicConfig(filename='debug.log',level=logging.DEBUG)
 
     # Create the lambda rank object for training
-    lambdaRank = LambdaRankHW(config.FEATURE_COUNT, POINTWISE)
+    lambdaRank = LambdaRankHW(config.FEATURE_COUNT, PAIRWISE)
 
     val_queries = load_queries('./HP2003/Fold1/vali.txt', config.FEATURE_COUNT)
     ndcg = lambdaRank.ndcg(val_queries, 10)
