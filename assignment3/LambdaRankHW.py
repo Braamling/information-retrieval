@@ -314,7 +314,6 @@ class LambdaRankHW:
 
 
             avg_train_loss = np.mean(batch_train_losses)
-
             yield {
                 'number': epoch,
                 'train_loss': avg_train_loss,

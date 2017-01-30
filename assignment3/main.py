@@ -38,5 +38,6 @@ def main():
     # train_configuration(config, rank_type=PAIRWISE)
     train_configuration(config, rank_type=LISTWISE)
 
+
 if __name__ == '__main__':
     main()
