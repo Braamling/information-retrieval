@@ -6,6 +6,7 @@ import numpy as np
 
 class Config():
     FEATURE_COUNT = 64
+    FOLDS = 1
 
 
 def main():
@@ -23,11 +24,11 @@ def main():
 
     # Load first fold of files.
     queries = []
-    for i in range(1, 5):
+    for i in range(1, config.FOLDS + 1):
         queries.append(load_queries('./HP2003/Fold' + str(i) + '/train.txt', config.FEATURE_COUNT))
         logging.debug('Loaded %s', i)
-    for i in range(4):
-        lambdaRank.train_with_queries(queries[i], 20)
+    for i in range(config.FOLDS + 1):
+        lambdaRank.train_with_queries(queries[i], 10)
 
     ndcg = lambdaRank.ndcg(val_queries, 10)
     print ndcg

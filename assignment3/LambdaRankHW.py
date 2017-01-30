@@ -9,7 +9,7 @@ import time
 import math
 from itertools import count
 import query
-theano.config.floatX = 'float32'
+# theano.config.floatX = 'float32'
 
 
 BATCH_SIZE = 1000
@@ -157,7 +157,7 @@ class LambdaRankHW:
 
         # Calculate Lambda u,v
         denominator = 1 + np.exp(nn_scores)
-        lambda_uv = .5 * ((1 - label_scores) - (1 / denominator))
+        lambda_uv = .5 * ((1 - label_scores).astype(int)) - (1 / denominator))
 
         # Subtract all positive label scored lambdas from the negative label scores lambdas
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv)
@@ -212,6 +212,8 @@ class LambdaRankHW:
         for query in train_queries:
             labels = query.get_labels()
 
+            sorted_labels = sorted(labels, key=lambda x: -float(x))
+
             # Score and assign internal doc number to each document
             scores = enumerate(self.score(query).flatten())
 
@@ -225,9 +227,12 @@ class LambdaRankHW:
             for i, doc in enumerate(ranking, 1):
                 # Calculate each part of the dcg part
                 dcg += (2**labels[doc[0]] - 1) / math.log(i + 1, 2)
-                max_dcg += (2**1 - 1) / math.log(i + 1, 2)
+                max_dcg += (2**sorted_labels[i-1] - 1) / math.log(i + 1, 2)
 
-            ndcgs.append(dcg/max_dcg)
+            if max_dcg is 0.0:
+                ndcgs.append(0.0)
+            else:
+                ndcgs.append(dcg/max_dcg)
 
         return ndcgs
 
