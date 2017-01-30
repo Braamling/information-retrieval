@@ -9,7 +9,7 @@ def main():
 	config = Config()
 
 	# Create the lambda rank object for training
-	lambdaRank = LambdaRankHW(config.FEATURE_COUNT, POINTWISE)
+	lambdaRank = LambdaRankHW(config.FEATURE_COUNT, PAIRWISE)
 	
 	# Load first fold of files.
 	queries = load_queries('./HP2003/Fold1/train.txt', config.FEATURE_COUNT)

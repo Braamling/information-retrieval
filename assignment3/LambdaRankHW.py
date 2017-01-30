@@ -8,7 +8,9 @@ import theano.tensor as T
 import time
 from itertools import count
 import query
- 
+theano.config.floatX = 'float32'
+
+
 NUM_EPOCHS = 100
 
 BATCH_SIZE = 1000
@@ -23,7 +25,7 @@ PAIRWISE = 1
 
 # TODO: Implement the lambda loss function
 def lambda_loss(output, lambdas):
-    return theano.dot(output, lambdas)
+    return theano.tensor.sum(theano.dot(output, lambdas))
 
 class LambdaRankHW:
 
