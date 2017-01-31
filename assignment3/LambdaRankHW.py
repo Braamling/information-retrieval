@@ -20,6 +20,7 @@ MOMENTUM = 0.95
 
 POINTWISE = 0
 PAIRWISE = 1
+LISTWISE = 2
 
 
 # TODO: Implement the lambda loss function
@@ -33,7 +34,7 @@ class LambdaRankHW:
     def __init__(self, feature_count, type=PAIRWISE):
         self.feature_count = feature_count
         self.rank_type = type
-        self.output_layer = self.build_model(feature_count,1,BATCH_SIZE)
+        self.output_layer = self.build_model(feature_count, 1, BATCH_SIZE)
         self.iter_funcs = self.create_functions(self.output_layer)
 
     def build_model(self,input_dim, output_dim,
@@ -58,19 +59,11 @@ class LambdaRankHW:
             nonlinearity=lasagne.nonlinearities.tanh,
         )
 
-
-        if self.rank_type is POINTWISE:
-            l_out = lasagne.layers.DenseLayer(
-                l_hidden,
-                num_units=output_dim,
-                nonlinearity=lasagne.nonlinearities.linear,
-            )
-        elif self.rank_type is PAIRWISE:
-            l_out = lasagne.layers.DenseLayer(
-                l_hidden,
-                num_units=output_dim,
-                nonlinearity=lasagne.nonlinearities.linear,
-            )
+        l_out = lasagne.layers.DenseLayer(
+            l_hidden,
+            num_units=output_dim,
+            nonlinearity=lasagne.nonlinearities.linear,
+        )
 
         return l_out
 
@@ -95,7 +88,7 @@ class LambdaRankHW:
             # Point-wise loss function (squared error) - comment it out
             loss_train = lasagne.objectives.squared_error(output, y_batch)
             loss_train = loss_train.mean()
-        elif self.rank_type is PAIRWISE:
+        elif self.rank_type in [PAIRWISE, LISTWISE]:
             # Pairwise loss function - comment it in
             loss_train = lambda_loss(output, y_batch)
 
@@ -145,6 +138,12 @@ class LambdaRankHW:
         # Subtract the matrix by its vector
         return np.subtract(W_1, w_1)
 
+    """ Rescores the original nn outputs with the calculated lambdas. """
+    def rescore(self, scores, lambdas):
+        # Because our scores are negative, we subtract the lambdas 
+        # instead of adding them
+        return scores - lambdas
+
 
     def score(self, query):
         feature_vectors = query.get_feature_vectors()
@@ -152,7 +151,7 @@ class LambdaRankHW:
         return scores
 
     # TODO: Implement the aggregate (i.e. per document) lambda function
-    def lambda_function(self, labels, scores):
+    def lambda_function(self, labels, scores, lambdarank=False):
 
         # TODO(bram) optimize label scoring with theano?
 
@@ -167,18 +166,23 @@ class LambdaRankHW:
         positive_label_scores = np.float32((0 < label_scores))
         lambda_uv = (.5 * (1 - positive_label_scores)) - (1 / denominator)
 
-        # print lambdas
         # Subtract all positive label scored lambdas from the negative label scores lambdas
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv.T)
 
-        # np.sum(lambda_docs, axis=1) + 100.0
-
+        # Aggregate each lambda
         lambdas = np.sum(lambda_docs, axis=1)
+
+        if lambdarank:
+            ndcg_1 = self.ndcg(enumerate(scores), labels, len(scores))
+            scores = self.rescore(scores, lambdas)
+            ndcg_2 = self.ndcg(enumerate(scores), labels, len(scores))
+            lambdas = lambdas * (ndcg_2 - ndcg_1)
+
         return lambdas
 
     def compute_lambdas_theano(self, query, labels):
         scores = self.score(query).flatten()
-        result = self.lambda_function(labels, scores[:len(labels)])
+        result = self.lambda_function(labels, scores[:len(labels)], self.rank_type is LISTWISE)
         return result
 
     def train_once(self, X_train, query, labels):
@@ -186,7 +190,7 @@ class LambdaRankHW:
         # TODO: Comment out to obtain the lambdas
         # NOTETOSELF: Comment this in combination with 
         # the batch_train_loss to obtain point-wise
-        if self.rank_type is PAIRWISE:
+        if self.rank_type in [PAIRWISE, LISTWISE]:
             lambdas = self.compute_lambdas_theano(query,labels)
             lambdas.resize((BATCH_SIZE, ))
 
@@ -198,7 +202,7 @@ class LambdaRankHW:
         # TODO: Comment out (and comment in) to replace labels by lambdas
         if self.rank_type is POINTWISE:
             batch_train_loss = self.iter_funcs['train'](X_train, labels)
-        elif self.rank_type is PAIRWISE:
+        elif self.rank_type in [PAIRWISE, LISTWISE]:
             batch_train_loss = self.iter_funcs['train'](X_train, lambdas)
 
         return batch_train_loss
@@ -219,35 +223,45 @@ class LambdaRankHW:
             pass
 
     # train_queries are what load_queries returns - implemented in query.py
-    def ndcg(self, train_queries, n_ndcg):
+    def ndcgs(self, train_queries, n_ndcg):
         ndcgs = []
         for query in train_queries:
+            # Retrieve all labels from a query
             labels = query.get_labels()
-
-            sorted_labels = sorted(labels, key=lambda x: -float(x))
 
             # Score and assign internal doc number to each document
             scores = enumerate(self.score(query).flatten())
 
-            # Sort the documents based on the output score
-            ranking = sorted(scores, key=lambda x: -x[1])
+            ndcgs.append(self.ndcg(scores, labels, n_ndcg))
 
-            # Discard all but the best n_ndcg documents
-            ranking = ranking[:n_ndcg]
-
-            dcg = max_dcg = 0
-            for i, doc in enumerate(ranking, 1):
-                # Calculate each part of the dcg part
-                dcg += (2**labels[doc[0]] - 1) / math.log(i + 1, 2)
-                max_dcg += (2**sorted_labels[i-1] - 1) / math.log(i + 1, 2)
-
-            if max_dcg is 0.0:
-                ndcgs.append(0.0)
-            else:
-                ndcgs.append(dcg/max_dcg)
 
         return ndcgs
 
+    def ndcg(self, scores, labels, n_ndcg):
+        # Sort the documents based on the output score
+        ranking = sorted(scores, key=lambda x: -x[1])
+        # Sort labels high to low
+        sorted_labels = sorted(labels, key=lambda x: -float(x))
+        
+        # Discard all but the best n_ndcg documents
+        ranking = ranking[:n_ndcg]
+
+        dcg = 0
+        max_dcg = 0.0
+        for i, doc in enumerate(ranking, 1):
+            # Calculate each part of the dcg part
+            dcg += (2**labels[doc[0]] - 1) / math.log(i + 1, 2)
+            max_dcg += (2**sorted_labels[i-1] - 1) / math.log(i + 1, 2)
+
+        # Ignore queries where the max_dcg is 0.0
+        # Weird hack because python is inconsistent with division by zero errors
+        try:
+            if math.isnan(dcg/max_dcg):
+                return 0.0
+        except ZeroDivisionError as e:
+            return 0.0
+        
+        return dcg/max_dcg
 
     def train(self, train_queries):
         X_trains = train_queries.get_feature_vectors()
