@@ -29,6 +29,7 @@ def train_configuration(config, rank_type=PAIRWISE):
         print ndcg
         print "The average ndcg is: " + str(np.average(ndcg))
 
+
 def main():
     config = Config()
     logging.basicConfig(filename='debug.log',level=logging.DEBUG)

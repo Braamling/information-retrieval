@@ -25,7 +25,8 @@ LISTWISE = 2
 
 # TODO: Implement the lambda loss function
 def lambda_loss(output, lambdas):
-    return theano.tensor.sum(theano.dot(output, lambdas))
+    x = T.dot(output, lambdas)
+    return x
 
 class LambdaRankHW:
 
@@ -90,7 +91,10 @@ class LambdaRankHW:
             loss_train = loss_train.mean()
         elif self.rank_type in [PAIRWISE, LISTWISE]:
             # Pairwise loss function - comment it in
+            self.bla1 = output
+            self.bla2 = y_batch
             loss_train = lambda_loss(output, y_batch)
+            loss_train = loss_train.mean()
 
 
         # TODO: (Optionally) You can add regularization if you want - for those interested
@@ -186,7 +190,7 @@ class LambdaRankHW:
         # Calculate Lambda u,v
         denominator = 1 + np.exp(nn_scores)
         positive_label_scores = np.float32((0 < label_scores))
-        lambda_uv = (.5 * (1 - positive_label_scores)) - (1 / denominator)
+        lambda_uv = (.5 * (1 - label_scores)) - (1 / denominator)
 
         if lambdarank:
             delta_ndcg = self.calculate_delta_ndcg(scores)
@@ -199,6 +203,7 @@ class LambdaRankHW:
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv.T)
 
         # Aggregate each lambda
+        # np.sum(lambda_docs, axis=1) + 100.0
         lambdas = np.sum(lambda_docs, axis=1)
 
         # if lambdarank:
@@ -222,6 +227,7 @@ class LambdaRankHW:
         if self.rank_type in [PAIRWISE, LISTWISE]:
             lambdas = self.compute_lambdas_theano(query,labels)
             lambdas.resize((BATCH_SIZE, ))
+
 
         resize_value = BATCH_SIZE
         if self.rank_type is POINTWISE:
@@ -310,6 +316,8 @@ class LambdaRankHW:
                 random_index = random_batch[index]
                 labels = queries[random_index].get_labels()
                 batch_train_loss = self.train_once(X_trains[random_index], queries[random_index], labels)
+                # self.bla1.shape.eval({'x' : X_trains[random_index], 'y': queries[random_index]})
+                # self.bla2.shape.eval({'x' : X_trains[random_index], 'y': queries[random_index]})
                 batch_train_losses.append(batch_train_loss)
 
 
