@@ -243,7 +243,7 @@ class LambdaRankHW:
         return batch_train_loss
 
     # train_queries are what load_queries returns - implemented in query.py
-    def train_with_queries(self, train_queries, num_epochs, valid_queries=None):
+    def train_with_queries(self, train_queries, num_epochs):
         try:
             now = time.time()
             for epoch in self.train(train_queries):
@@ -252,11 +252,6 @@ class LambdaRankHW:
                     epoch['number'], num_epochs, time.time() - now))
                     print("training loss:\t\t{:.6f}\n".format(epoch['train_loss']))
                     now = time.time()
-                    if valid_queries is not None:
-                        ndcg = self.ndcgs(valid_queries, 10)
-                        print "The average ndcg is: " + str(np.average(ndcg))
-                        ndcg = self.ndcgs(train_queries, 10)
-                        print "The average ndcg is: " + str(np.average(ndcg))
                 if epoch['number'] >= num_epochs:
                     break
         except KeyboardInterrupt:
