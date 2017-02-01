@@ -14,8 +14,8 @@ theano.config.floatX = 'float32'
 
 BATCH_SIZE = 1000
 NUM_HIDDEN_UNITS = 100
-# LEARNING_RATE = 0.00005
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.00005
+# LEARNING_RATE = 0.005
 MOMENTUM = 0.95
 
 POINTWISE = 0
@@ -102,7 +102,7 @@ class LambdaRankHW:
         all_params = lasagne.layers.get_all_params(output_layer)
 
         # Update parameters, adam is a particular "flavor" of Gradient Descent
-        updates = lasagne.updates.adam(loss_train, all_params)
+        updates = lasagne.updates.adam(loss_train, all_params, learning_rate=LEARNING_RATE)
 
 
         # Create two functions:
@@ -116,6 +116,7 @@ class LambdaRankHW:
         train_func = theano.function(
             [X_batch,y_batch], loss_train,
             updates=updates,
+            allow_input_downcast=True
             # givens={
             #     X_batch: dataset['X_train'][batch_slice],
             #     # y_batch: dataset['y_valid'][batch_slice],
@@ -150,6 +151,27 @@ class LambdaRankHW:
         scores = self.iter_funcs['out'](feature_vectors)
         return scores
 
+    """
+    We calculate the delta NDCG for each document pair as 1/log(i + 1) - 1/log(j + 1)
+    """
+    def calculate_delta_ndcg(self, scores):
+        # Get the ranking from each scores and keep track of original indicies
+        sorted_scores = sorted(enumerate(scores, 1), key=lambda x: -x[1])
+
+        ranking = np.zeros(len(sorted_scores))
+
+        for i, x in enumerate(sorted_scores):
+            ranking[i] = x[0] 
+
+
+        ndcg_components = 1 / np.log2(ranking + 1)
+
+        delta_ndcg = self.subtract_all_pairs(ndcg_components, ndcg_components)
+        # print delta_ndcg
+
+        return delta_ndcg.T
+
+
     # TODO: Implement the aggregate (i.e. per document) lambda function
     def lambda_function(self, labels, scores, lambdarank=False):
 
@@ -166,17 +188,24 @@ class LambdaRankHW:
         positive_label_scores = np.float32((0 < label_scores))
         lambda_uv = (.5 * (1 - positive_label_scores)) - (1 / denominator)
 
+        if lambdarank:
+            delta_ndcg = self.calculate_delta_ndcg(scores)
+
+            delta_ndcg = -delta_ndcg * label_scores
+
+            lambda_uv = np.multiply(lambda_uv, delta_ndcg)
+
         # Subtract all positive label scored lambdas from the negative label scores lambdas
         lambda_docs = ((0 < label_scores) * lambda_uv) - ((0 > label_scores) * lambda_uv.T)
 
         # Aggregate each lambda
         lambdas = np.sum(lambda_docs, axis=1)
 
-        if lambdarank:
-            ndcg_1 = self.ndcg(enumerate(scores), labels, len(scores))
-            scores = self.rescore(scores, lambdas)
-            ndcg_2 = self.ndcg(enumerate(scores), labels, len(scores))
-            lambdas = lambdas * (ndcg_2 - ndcg_1)
+        # if lambdarank:
+        #     ndcg_1 = self.ndcg(enumerate(scores), labels, len(scores))
+        #     scores = self.rescore(scores, lambdas)
+        #     ndcg_2 = self.ndcg(enumerate(scores), labels, len(scores))
+        #     lambdas = lambdas * (ndcg_2 - ndcg_1)
 
         return lambdas
 
@@ -208,7 +237,7 @@ class LambdaRankHW:
         return batch_train_loss
 
     # train_queries are what load_queries returns - implemented in query.py
-    def train_with_queries(self, train_queries, num_epochs):
+    def train_with_queries(self, train_queries, num_epochs, valid_queries=None):
         try:
             now = time.time()
             for epoch in self.train(train_queries):
@@ -217,6 +246,11 @@ class LambdaRankHW:
                     epoch['number'], num_epochs, time.time() - now))
                     print("training loss:\t\t{:.6f}\n".format(epoch['train_loss']))
                     now = time.time()
+                    if valid_queries is not None:
+                        ndcg = self.ndcgs(valid_queries, 10)
+                        print "The average ndcg is: " + str(np.average(ndcg))
+                        ndcg = self.ndcgs(train_queries, 10)
+                        print "The average ndcg is: " + str(np.average(ndcg))
                 if epoch['number'] >= num_epochs:
                     break
         except KeyboardInterrupt:
