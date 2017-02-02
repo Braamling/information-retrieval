@@ -36,10 +36,13 @@ def train_configuration(config, rank_type=PAIRWISE):
             print(" The average training ndcg is " + str(train_ndcg))
             print(" The average validation ndcg is " + str(valid_ndcg))
             # print "The average test ndcg is: " + str(test_ndcg)
-
-        test_ndcgs.append(np.average(lambdaRank.ndcgs(test_queries, 10)))
+        test_ndcg = lambdaRank.ndcgs(test_queries, 10)
+        test_ndcgs.append(np.average(test_ndcg))
         # lambdaRank.train_with_queries(valid_queries, config.NUM_SUB_EPOCHS)
 
+    print(train_ndcgs)
+    print(val_ndcgs)
+    print(test_ndcgs)
     plot_valid(train_ndcgs, val_ndcgs, rank_type)
     return test_ndcgs
     # plot_test(test_ndcgs, np.average(test_ndcgs), rank_type)
@@ -97,35 +100,17 @@ def plot_test(pointwise, pairwise, listwise):
     plt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
 
 def main():
-    # x =  []
-    # x2 = [2, 3, 4, 3, 2]
-    # x3 = [3, 4, 5, 4, 3]
-    # plot_test(x, x2, x3)
-    # plt.show()
-    # print("done")
-    # x = [1, 2, 3, 4]
-    # x2 = [1.5, 2.5, 3.5, 4.5]
-    # x3 = [2, 3, 4, 5]
-    # y = [4, 3, 2, 1]
-    # z = 2
-
-    # plt.figure(1)
-    # plot_valid(x, y, POINTWISE)
-    # plot_valid(x3, x2, PAIRWISE)
-    # plt.show()
-
     config = Config()
     logging.basicConfig(filename='debug.log',level=logging.DEBUG)
 
     # Train all three types of rank types
-
-
     point_test = train_configuration(config, rank_type=POINTWISE)
     print "point test done ------------------------------"
     pair_test = train_configuration(config, rank_type=PAIRWISE)
     print "pair test done ------------------------------"
     list_test = train_configuration(config, rank_type=LISTWISE)
     print "list test done ------------------------------"
+
     plot_test(point_test, pair_test, list_test)
     plt.show()
 

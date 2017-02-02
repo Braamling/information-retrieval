@@ -263,12 +263,13 @@ class LambdaRankHW:
         for query in train_queries:
             # Retrieve all labels from a query
             labels = query.get_labels()
-
             # Score and assign internal doc number to each document
-            scores = enumerate(self.score(query).flatten())
+            scores = enumerate(self.score(query).flatten()[:len(labels)])
 
             ndcgs.append(self.ndcg(scores, labels, n_ndcg))
-
+            if sum(ndcgs) < 0.0001:
+                print(sum(labels))
+                # print(scores)
 
         return ndcgs
 
